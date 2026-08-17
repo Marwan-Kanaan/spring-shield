@@ -4,7 +4,7 @@
  * <p>These classes are internal. They are public only because Spring needs to instantiate
  * them, and they are not a supported extension point: they can be renamed or restructured
  * in any release. Extend SpringShield through the interfaces in
- * {@code io.github.mkanaan.springshield} or by defining your own beans instead.
+ * {@code io.github.marwankanaan.springshield} or by defining your own beans instead.
  *
  * <p>Auto-configurations are discovered through
  * {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports}.
@@ -33,4 +33,4 @@
  * before Boot's security auto-configuration, so that Boot's condition observes the
  * SpringShield chain.
  */
-package io.github.mkanaan.springshield.autoconfigure;
+package io.github.marwankanaan.springshield.autoconfigure;

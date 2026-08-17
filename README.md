@@ -45,9 +45,9 @@ security patches.
 
 | Module | Role |
 |---|---|
-| `springshield-core` | Public abstractions. No compile dependencies, so it forces no framework or persistence choice. |
-| `springshield-autoconfigure` | Spring Boot integration, configuration properties and default wiring. Internal. |
-| `springshield-spring-boot-starter` | The dependency you add. Aggregator only, no logic. |
+| `spring-shield-core` | Public abstractions. No compile dependencies, so it forces no framework or persistence choice. |
+| `spring-shield-autoconfigure` | Spring Boot integration, configuration properties and default wiring. Internal. |
+| `spring-shield-spring-boot-starter` | The dependency you add. Aggregator only, no logic. |
 
 Optional integrations (JPA, JDBC, OAuth2/OIDC SSO) will live in separate modules so
 applications that do not use them do not inherit their dependencies.
@@ -103,7 +103,7 @@ Standing rules for changes to this project:
 
 - Never reimplement what Spring Security already provides.
 - Security changes require negative tests, not just happy-path tests.
-- `springshield-core` stays free of compile dependencies.
+- `spring-shield-core` stays free of compile dependencies.
 - Public API changes are breaking changes and follow the deprecation policy.
 
 ## License

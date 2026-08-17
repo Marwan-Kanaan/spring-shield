@@ -6,12 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.github.mkanaan</groupId>
-        <artifactId>springshield-parent</artifactId>
+        <groupId>io.github.marwan-kanaan</groupId>
+        <artifactId>spring-shield-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>springshield-autoconfigure</artifactId>
+    <artifactId>spring-shield-autoconfigure</artifactId>
     <packaging>jar</packaging>
 
     <name>SpringShield Auto-Configuration</name>
@@ -22,8 +22,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.github.mkanaan</groupId>
-            <artifactId>springshield-core</artifactId>
+            <groupId>io.github.marwan-kanaan</groupId>
+            <artifactId>spring-shield-core</artifactId>
         </dependency>
 
         <!-- @AutoConfiguration and the @ConditionalOn* family. -->

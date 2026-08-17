@@ -7,7 +7,7 @@
  * <p>This module has no compile-scope dependencies, and that is deliberate. It carries no
  * Spring Boot, Spring Security, JPA or JDBC coupling, so depending on SpringShield's
  * abstractions never forces a persistence or framework choice on an application. The
- * Spring wiring lives in {@code springshield-autoconfigure}; storage adapters live in
+ * Spring wiring lives in {@code spring-shield-autoconfigure}; storage adapters live in
  * their own modules.
  *
  * <p>Two consequences worth knowing before contributing here:
@@ -19,4 +19,4 @@
  *       deprecation policy rather than being edited directly.</li>
  * </ul>
  */
-package io.github.mkanaan.springshield;
+package io.github.marwankanaan.springshield;

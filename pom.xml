@@ -5,8 +5,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.mkanaan</groupId>
-    <artifactId>springshield-parent</artifactId>
+    <groupId>io.github.marwan-kanaan</groupId>
+    <artifactId>spring-shield-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -16,7 +16,7 @@
         SpringShield is a developer-experience layer on top of Spring Security, not a replacement
         for it.
     </description>
-    <url>https://github.com/mkanaan/springshield</url>
+    <url>https://github.com/Marwan-Kanaan/spring-shield</url>
     <inceptionYear>2026</inceptionYear>
 
     <licenses>
@@ -29,35 +29,35 @@
 
     <developers>
         <developer>
-            <id>mkanaan</id>
-            <name>mkanaan</name>
-            <url>https://github.com/mkanaan</url>
+            <id>Marwan-Kanaan</id>
+            <name>Marwan Kanaan</name>
+            <url>https://github.com/Marwan-Kanaan</url>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/mkanaan/springshield.git</connection>
-        <developerConnection>scm:git:git@github.com:mkanaan/springshield.git</developerConnection>
-        <url>https://github.com/mkanaan/springshield</url>
+        <connection>scm:git:https://github.com/Marwan-Kanaan/spring-shield.git</connection>
+        <developerConnection>scm:git:git@github.com:Marwan-Kanaan/spring-shield.git</developerConnection>
+        <url>https://github.com/Marwan-Kanaan/spring-shield</url>
         <tag>HEAD</tag>
     </scm>
 
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/mkanaan/springshield/issues</url>
+        <url>https://github.com/Marwan-Kanaan/spring-shield/issues</url>
     </issueManagement>
 
     <!--
         Module layering. Each module may depend only on modules listed above it:
 
-            springshield-core                 public abstractions, no Spring Boot coupling
-            springshield-autoconfigure        Spring Boot integration and default wiring
-            springshield-spring-boot-starter  dependency aggregator, no logic
+            spring-shield-core                 public abstractions, no Spring Boot coupling
+            spring-shield-autoconfigure        Spring Boot integration and default wiring
+            spring-shield-spring-boot-starter  dependency aggregator, no logic
     -->
     <modules>
-        <module>springshield-core</module>
-        <module>springshield-autoconfigure</module>
-        <module>springshield-spring-boot-starter</module>
+        <module>spring-shield-core</module>
+        <module>spring-shield-autoconfigure</module>
+        <module>spring-shield-spring-boot-starter</module>
     </modules>
 
     <properties>
@@ -121,12 +121,12 @@
             <!-- Internal modules, so downstream POMs never repeat a version. -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>springshield-core</artifactId>
+                <artifactId>spring-shield-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>springshield-autoconfigure</artifactId>
+                <artifactId>spring-shield-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
