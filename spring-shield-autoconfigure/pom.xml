@@ -54,9 +54,42 @@
             <optional>true</optional>
         </dependency>
 
+        <!--
+            Servlet and MVC support, test scope only. The security filter chain can only be
+            proven by issuing real requests through it: an assertion that a bean exists says
+            nothing about whether an unauthenticated request is actually rejected.
+            Test scope keeps this out of the published dependency graph.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            MockMvc test support. Spring Boot 4 moved it out of spring-boot-test-autoconfigure
+            into this separate module, under the package
+            org.springframework.boot.webmvc.test.autoconfigure, and spring-boot-starter-test
+            does not pull it in, so it has to be declared explicitly.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Applies Spring Security's springSecurity() configurer to the auto-configured
+            MockMvc. Without it @WithMockUser has no effect on a MockMvc request and every
+            authenticated test would fail with 401, which looks like a broken filter chain
+            rather than missing test wiring.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-security-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

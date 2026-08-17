@@ -2,12 +2,12 @@
 
 An opinionated, secure-by-default Spring Boot starter that orchestrates Spring Security.
 
-> **Status: pre-alpha, not usable yet.**
-> The public API, configuration properties and build exist and are tested. What does **not**
-> exist yet is any enforcement: there is no security filter chain, no authentication and no
-> authorization. Configuration binds and validates, but changes nothing at runtime, and
-> nothing has been published. Do not add this to an application expecting it to secure
-> anything.
+> **Status: pre-alpha, nothing published yet.**
+> Request authorization works: SpringShield contributes a filter chain that denies by
+> default and permits the endpoints you list. What does **not** exist yet is authentication
+> of its own (JWT and OIDC are planned, so users are still supplied the usual Spring
+> Security way), permission-based authorization, and the `@RequiresPermission` annotations.
+> The public API may still change without notice.
 
 ## What it is
 
@@ -72,9 +72,13 @@ springshield:
 | `springshield.enabled` | `true` | Whether SpringShield configures anything. When `false` it backs off entirely and Spring Boot's own security defaults apply, so the application stays protected rather than becoming open. |
 | `springshield.web.public-endpoints` | *(empty)* | Request patterns reachable without authentication. Empty by default, so nothing is public until you name it. |
 
-> **These properties bind and validate today, but nothing enforces them yet.**
-> `public-endpoints` does **not** currently affect request handling — the filter chain that
-> reads it is not implemented. Do not rely on it to protect anything.
+These are enforced. SpringShield contributes a `SecurityFilterChain` that permits the listed
+patterns and requires authentication for everything else, verified by tests that issue real
+requests through the chain.
+
+What is **not** implemented yet is any authentication mechanism of SpringShield's own. The
+chain keeps Spring Boot's form login and HTTP Basic, so you still need to supply users the
+usual Spring Security way. JWT and OIDC come later.
 
 ### Configuration mistakes stop startup
 
