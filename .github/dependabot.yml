@@ -1,0 +1,47 @@
+version: 2
+
+# Dependency and CVE monitoring.
+#
+# This is deliberately chosen over running a scanner such as OWASP Dependency-Check
+# inside the Maven build. Dependency-Check needs the NVD data set and an API key, and
+# its first run costs a long time, which would make every local build and CI run slow.
+# Dependabot does the same job out of band, raises a PR with the fix, and adds nothing
+# to build time.
+#
+# Alerts still require "Dependabot alerts" and "Dependabot security updates" to be
+# enabled in the repository's Settings -> Code security page. This file alone only
+# schedules version updates.
+
+updates:
+  # Maven dependencies and plugins.
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      # Spring Boot manages a large slice of the dependency tree, so its updates
+      # arrive together and are best reviewed as one change.
+      spring-boot:
+        patterns:
+          - org.springframework.boot:*
+      build-plugins:
+        patterns:
+          - org.apache.maven.plugins:*
+          - com.github.spotbugs:*
+          - com.h3xstream.findsecbugs:*
+          - io.spring.javaformat:*
+
+  # Keeps the SHA-pinned actions in .github/workflows current. Without this, pinning
+  # to a SHA means never receiving upstream security fixes for the actions themselves.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - ci

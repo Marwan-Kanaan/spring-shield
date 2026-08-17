@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: this workflow only reads the repository. Any job needing more
+# should request it explicitly at the job level rather than widening this.
+permissions:
+  contents: read
+
+concurrency:
+  # Cancel superseded runs on the same branch, but never cancel a main build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['21', '25']
+
+    steps:
+      # Actions are pinned to commit SHAs rather than tags. A tag is mutable and can be
+      # repointed at malicious code; a SHA cannot. Dependabot keeps these current.
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      # Runs the full gate set: formatting, enforcer (Java version, dependency
+      # convergence), compilation, tests and SpotBugs with Find Security Bugs.
+      - name: Build and verify
+        run: mvn -B --no-transfer-progress clean verify
+
+      - name: Upload SpotBugs reports
+        # Reports are most useful precisely when the build failed.
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: spotbugs-reports-jdk${{ matrix.java }}
+          path: '**/target/spotbugsXml.xml'
+          if-no-files-found: ignore
+          retention-days: 7

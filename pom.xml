@@ -100,6 +100,19 @@
         <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+
+        <!-- Quality gates. -->
+        <spring-javaformat.version>0.0.48</spring-javaformat.version>
+        <spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
+        <findsecbugs-plugin.version>1.14.0</findsecbugs-plugin.version>
+
+        <!--
+            Fixed timestamp for reproducible builds: without it, jar entry timestamps
+            change on every build and two builds of the same commit produce different
+            bytes. Consumers of a security library should be able to verify that a
+            published jar was built from the tagged source.
+        -->
+        <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
     </properties>
 
     <dependencyManagement>
@@ -194,6 +207,71 @@
             </plugin>
 
             <!--
+                Enforces the Spring Framework code style, the same formatter Spring Boot
+                and Spring Security use. Chosen over a general-purpose formatter because
+                contributors to a Spring ecosystem library already know this style, and it
+                keeps diffs free of formatting noise.
+
+                `mvn spring-javaformat:apply` reformats sources in place. The build only
+                validates, so it never rewrites files behind your back.
+            -->
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+                <version>${spring-javaformat.version}</version>
+                <executions>
+                    <execution>
+                        <id>validate-format</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>validate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                SpotBugs with the Find Security Bugs plugin.
+
+                Find Security Bugs is the reason this is here: it detects injection,
+                weak cryptography, unsafe deserialization and hard-coded credential
+                patterns that ordinary style checking cannot see. For a library whose
+                whole purpose is security, this gate is worth its build cost.
+
+                threshold=Low with effort=Max reports everything, including low-confidence
+                findings. That is deliberate for a security library. Suppressions must be
+                added to spotbugs-exclude.xml with a comment, so every ignored finding is
+                a reviewable decision rather than a silent one.
+            -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-maven-plugin.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <includeTests>false</includeTests>
+                    <excludeFilterFile>${maven.multiModuleProjectDirectory}/spotbugs-exclude.xml</excludeFilterFile>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${findsecbugs-plugin.version}</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
                 Fail the build early when the local toolchain cannot honour the baseline,
                 instead of failing later with a confusing compiler or bytecode error.
                 Note that Maven runs on the JDK from JAVA_HOME, which may differ from the
@@ -218,6 +296,15 @@
                                 <requireMavenVersion>
                                     <version>[3.9,)</version>
                                 </requireMavenVersion>
+                                <!--
+                                    A security library must know exactly which version of
+                                    each dependency it ships against. Convergence failures
+                                    mean the resolved version depends on declaration order,
+                                    which can silently pull in an unpatched transitive
+                                    dependency.
+                                -->
+                                <dependencyConvergence/>
+                                <banDuplicatePomDependencyVersions/>
                             </rules>
                         </configuration>
                     </execution>

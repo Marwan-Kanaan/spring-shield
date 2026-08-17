@@ -97,6 +97,31 @@ Requires JDK 21. Maven uses the JDK from `JAVA_HOME`, which may differ from whic
 mvn clean verify
 ```
 
+## Quality gates
+
+`mvn verify` runs all of these, and CI runs the same command on JDK 21 and 25:
+
+| Gate | Tool | Fails the build when |
+|---|---|---|
+| Code format | `spring-javaformat` | A source file does not match the Spring code style |
+| Toolchain | `maven-enforcer` | JDK is below 21, or Maven below 3.9 |
+| Dependency convergence | `maven-enforcer` | A transitive dependency resolves to conflicting versions |
+| Static analysis | SpotBugs + Find Security Bugs | Any bug or security pattern is detected |
+
+Formatting violations are fixable in one command:
+
+```bash
+mvn spring-javaformat:apply
+```
+
+SpotBugs runs at `threshold=Low`, `effort=Max` — it reports low-confidence findings too,
+which is deliberate for a security library. Suppressions go in `spotbugs-exclude.xml` and
+must carry a comment explaining why the finding does not apply, so each one stays a
+reviewable decision.
+
+Dependency and CVE updates are handled by Dependabot rather than a build-time scanner, to
+keep `mvn verify` fast.
+
 ## Contributing
 
 Standing rules for changes to this project:

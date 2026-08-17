@@ -1,0 +1,34 @@
+# Normalize line endings so the build behaves identically on every platform.
+#
+# Without this, line endings depend on each contributor's local core.autocrlf
+# setting, which makes formatter checks pass on one machine and fail on another.
+
+* text=auto
+
+# Sources and build files use LF in the working copy too, so formatter output
+# is byte-identical regardless of the developer's OS.
+*.java       text eol=lf
+*.xml        text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.properties text eol=lf
+*.md         text eol=lf
+*.txt        text eol=lf
+*.gitignore  text eol=lf
+
+# Windows shell scripts must keep CRLF or they will not run.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary files must never be normalized.
+*.jar   binary
+*.war   binary
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.ico   binary
+*.jks   binary
+*.p12   binary
+*.pfx   binary
+*.keystore binary
+*.truststore binary
