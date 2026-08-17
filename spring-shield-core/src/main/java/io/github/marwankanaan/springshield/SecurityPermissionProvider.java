@@ -55,6 +55,8 @@ import java.util.Set;
  *
  * <p>
  * Implementations are used as singletons and must be thread-safe.
+ *
+ * @author mkanaan
  */
 @FunctionalInterface
 public interface SecurityPermissionProvider {

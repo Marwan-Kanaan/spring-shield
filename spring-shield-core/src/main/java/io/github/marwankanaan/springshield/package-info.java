@@ -21,5 +21,7 @@
  * <li>Renaming or removing a type here is a breaking change and follows the deprecation
  * policy rather than being edited directly.</li>
  * </ul>
+ *
+ * @author mkanaan
  */
 package io.github.marwankanaan.springshield;

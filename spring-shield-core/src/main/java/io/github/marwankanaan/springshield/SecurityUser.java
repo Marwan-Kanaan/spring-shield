@@ -62,6 +62,7 @@ import java.util.Set;
  * failed sign-ins
  * @param credentialsNonExpired whether the credentials have not expired, for example a
  * password past its maximum age
+ * @author mkanaan
  */
 public record SecurityUser(String username, Set<SecurityRole> roles, Set<SecurityPermission> permissions,
 		boolean enabled, boolean accountNonExpired, boolean accountNonLocked, boolean credentialsNonExpired) {

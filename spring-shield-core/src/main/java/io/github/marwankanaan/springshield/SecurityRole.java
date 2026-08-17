@@ -45,6 +45,7 @@ package io.github.marwankanaan.springshield;
  * Uppercase is the usual convention.
  *
  * @param value the bare role name, never blank and never {@code ROLE_}-prefixed
+ * @author mkanaan
  */
 public record SecurityRole(String value) {
 

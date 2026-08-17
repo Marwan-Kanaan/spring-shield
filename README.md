@@ -3,10 +3,11 @@
 An opinionated, secure-by-default Spring Boot starter that orchestrates Spring Security.
 
 > **Status: pre-alpha, not usable yet.**
-> The build skeleton and module layout exist. No security behaviour is implemented, and
-> nothing has been published. The configuration shown under
-> [Intended developer experience](#intended-developer-experience) is the design target,
-> not current behaviour. Do not add this to an application expecting it to secure anything.
+> The public API, configuration properties and build exist and are tested. What does **not**
+> exist yet is any enforcement: there is no security filter chain, no authentication and no
+> authorization. Configuration binds and validates, but changes nothing at runtime, and
+> nothing has been published. Do not add this to an application expecting it to secure
+> anything.
 
 ## What it is
 
@@ -52,23 +53,52 @@ security patches.
 Optional integrations (JPA, JDBC, OAuth2/OIDC SSO) will live in separate modules so
 applications that do not use them do not inherit their dependencies.
 
-## Intended developer experience
+## Configuration
 
-Design target, **not yet implemented**:
+All settings live under the `springshield` namespace, are strongly typed, and ship IDE
+completion metadata.
 
 ```yaml
 springshield:
-  authentication:
-    mode: jwt
-  jwt:
-    issuer-uri: https://identity.example.com
-    audiences:
-      - https://api.example.com
+  enabled: true
   web:
     public-endpoints:
       - /actuator/health
       - /api/public/**
 ```
+
+| Property | Default | Meaning |
+|---|---|---|
+| `springshield.enabled` | `true` | Whether SpringShield configures anything. When `false` it backs off entirely and Spring Boot's own security defaults apply, so the application stays protected rather than becoming open. |
+| `springshield.web.public-endpoints` | *(empty)* | Request patterns reachable without authentication. Empty by default, so nothing is public until you name it. |
+
+> **These properties bind and validate today, but nothing enforces them yet.**
+> `public-endpoints` does **not** currently affect request handling — the filter chain that
+> reads it is not implemented. Do not rely on it to protect anything.
+
+### Configuration mistakes stop startup
+
+Security settings fail loudly rather than being quietly ignored, because a setting that is
+silently dropped is worse than one that refuses to start:
+
+```yaml
+springshield:
+  web:
+    public-endpoints:
+      - /**            # rejected: would make every endpoint public
+      - actuator/health # rejected: no leading slash, so it would never match
+      - /api/a /api/b   # rejected: missing list separator
+```
+
+The `/**` rejection is deliberate. Opening every endpoint is usually added during
+development and left behind, because nothing afterwards fails or looks wrong. An
+application that genuinely needs no authentication should say so by declaring its own
+`SecurityFilterChain`, where the intent is visible in code review.
+
+### Planned
+
+Not yet implemented, listed so the intended shape is clear: `springshield.authentication.mode`,
+and the `springshield.jwt.*` block for issuer and audience validation.
 
 ## Backing off
 

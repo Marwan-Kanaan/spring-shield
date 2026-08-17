@@ -1,0 +1,128 @@
+package io.github.marwankanaan.springshield.autoconfigure;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+/**
+ * Configuration for SpringShield, bound from properties under {@code springshield}.
+ *
+ * <pre>
+ * springshield:
+ *   enabled: true
+ *   web:
+ *     public-endpoints:
+ *       - /actuator/health
+ *       - /api/public/**
+ * </pre>
+ *
+ * <p>
+ * Every value is validated while it binds, so a mistake stops the application from
+ * starting rather than becoming an authorization gap discovered later in production. A
+ * security setting that is silently ignored is worse than one that fails loudly.
+ *
+ * <p>
+ * Instances are immutable and safe to share between threads.
+ *
+ * @param enabled Whether SpringShield configures anything at all. When false, the
+ * auto-configuration backs off completely and the application keeps Spring Boot's own
+ * security defaults, so it stays protected rather than becoming open. Defaults to true.
+ * @param web Settings controlling which HTTP requests may be made without authentication.
+ * @author mkanaan
+ */
+@ConfigurationProperties(prefix = "springshield")
+public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @DefaultValue Web web) {
+
+	/**
+	 * Fills in a default {@link Web} when the {@code springshield.web} block is absent.
+	 */
+	public SpringShieldProperties {
+		if (web == null) {
+			web = new Web(null);
+		}
+	}
+
+	/**
+	 * Settings that control which HTTP requests may be made without authentication.
+	 *
+	 * @param publicEndpoints Request patterns reachable without authentication, for
+	 * example /actuator/health or /api/public/**. Every request that does not match one
+	 * of these requires authentication. Patterns must start with '/' and must not expose
+	 * the whole application. Defaults to an empty list, so nothing is public until it is
+	 * named here. $(printf ' ') * @author mkanaan
+	 */
+	public record Web(@DefaultValue List<String> publicEndpoints) {
+
+		/**
+		 * Patterns that would expose the entire application.
+		 *
+		 * <p>
+		 * These are rejected rather than accepted. Making every endpoint public is the
+		 * single most damaging thing this configuration can express, it is usually added
+		 * as a temporary measure during development, and it is easy to leave behind
+		 * because nothing afterwards fails or looks wrong. An application that genuinely
+		 * wants no authentication should say so by defining its own
+		 * {@code SecurityFilterChain}, where the intent is visible in code and shows up
+		 * in review.
+		 */
+		private static final List<String> EXPOSES_EVERYTHING = List.of("/**", "**");
+
+		/**
+		 * Validates and normalizes the endpoint patterns.
+		 * @throws IllegalArgumentException if any pattern is blank, exposes the whole
+		 * application, does not start with {@code /}, or contains whitespace
+		 */
+		public Web {
+			// List.copyOf is applied here rather than inside validate() so the immutable
+			// factory is visible at the assignment. Static analysis cannot otherwise see
+			// that the accessor never exposes a mutable list. It costs nothing: copyOf
+			// returns its argument unchanged when it is already immutable.
+			publicEndpoints = (publicEndpoints != null) ? List.copyOf(validate(publicEndpoints)) : List.of();
+		}
+
+		private static List<String> validate(List<String> patterns) {
+			List<String> validated = new ArrayList<>(patterns.size());
+			for (String pattern : patterns) {
+				validated.add(validatePattern(pattern));
+			}
+			return validated;
+		}
+
+		private static String validatePattern(String pattern) {
+			if (pattern == null || pattern.isBlank()) {
+				throw new IllegalArgumentException("springshield.web.public-endpoints must not contain a blank entry. "
+						+ "Remove the empty list item, or delete the property if nothing should be public.");
+			}
+			String trimmed = pattern.trim();
+			if (EXPOSES_EVERYTHING.contains(trimmed)) {
+				throw new IllegalArgumentException(
+						("springshield.web.public-endpoints must not contain '%s', because that makes every endpoint "
+								+ "in the application reachable without authentication. List the specific paths that "
+								+ "should be public, or define your own SecurityFilterChain bean if the application "
+								+ "genuinely needs no authentication.")
+							.formatted(trimmed));
+			}
+			if (!trimmed.startsWith("/")) {
+				throw new IllegalArgumentException(
+						("springshield.web.public-endpoints entries must start with '/', but was '%s'. "
+								+ "A pattern that does not start with '/' never matches a request path, so the "
+								+ "endpoint would silently stay protected.")
+							.formatted(trimmed));
+			}
+			for (int i = 0; i < trimmed.length(); i++) {
+				if (Character.isWhitespace(trimmed.charAt(i))) {
+					throw new IllegalArgumentException(
+							("springshield.web.public-endpoints entries must not contain whitespace, but was '%s'. "
+									+ "This is usually a missing list separator, which would leave the intended "
+									+ "path protected.")
+								.formatted(trimmed));
+				}
+			}
+			return trimmed;
+		}
+
+	}
+
+}

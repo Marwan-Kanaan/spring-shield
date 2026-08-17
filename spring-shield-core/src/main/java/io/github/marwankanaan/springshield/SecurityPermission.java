@@ -44,6 +44,7 @@ package io.github.marwankanaan.springshield;
  * different permissions.
  *
  * @param value the permission identifier, never blank
+ * @author mkanaan
  */
 public record SecurityPermission(String value) {
 

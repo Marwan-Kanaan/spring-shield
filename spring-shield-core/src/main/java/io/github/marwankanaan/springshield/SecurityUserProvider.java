@@ -62,6 +62,8 @@ import java.util.Optional;
  * <li>This is called on the authentication path, so keep it to a single efficient query
  * where possible.</li>
  * </ul>
+ *
+ * @author mkanaan
  */
 @FunctionalInterface
 public interface SecurityUserProvider {

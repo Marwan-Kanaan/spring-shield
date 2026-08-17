@@ -37,5 +37,7 @@
  * Ordering matters for that to hold: SpringShield's auto-configuration must be applied
  * before Boot's security auto-configuration, so that Boot's condition observes the
  * SpringShield chain.
+ *
+ * @author mkanaan
  */
 package io.github.marwankanaan.springshield.autoconfigure;
