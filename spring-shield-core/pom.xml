@@ -21,17 +21,30 @@
     </description>
 
     <!--
-        This module deliberately has no compile-scope dependencies.
+        Core holds the types application code implements and depends on, so every dependency
+        added here becomes a dependency of every SpringShield user. Keep this list short.
 
-        Core holds the types application code is expected to implement and depend on, so
-        every dependency added here becomes a dependency of every SpringShield user. Spring
-        Boot, Spring Security, JPA and JDBC coupling belongs in spring-shield-autoconfigure
-        or in a dedicated adapter module.
-
-        Adding a compile dependency to this module is an architectural decision that needs
-        an explicit justification in the change description.
+        Spring Boot, JPA and JDBC coupling does not belong here; it belongs in
+        spring-shield-autoconfigure or in a dedicated adapter module. Adding a compile
+        dependency to this module is an architectural decision that needs an explicit
+        justification in the change description.
     -->
     <dependencies>
+        <!--
+            Required so @RequiresPermission and @RequiresRole can be meta-annotated with
+            Spring Security's @PreAuthorize. That makes them genuine Spring Security
+            annotations, enforced by Spring Security's own method authorization, instead of
+            markers SpringShield would have to interpret with authorization code of its own.
+
+            Deliberately only spring-security-core, which is the annotation and
+            Authentication model. It pulls in no web, servlet or Spring Boot coupling, so the
+            value objects here stay usable from plain domain code.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

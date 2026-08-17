@@ -46,7 +46,7 @@ security patches.
 
 | Module | Role |
 |---|---|
-| `spring-shield-core` | Public abstractions. No compile dependencies, so it forces no framework or persistence choice. |
+| `spring-shield-core` | Public abstractions and annotations. Depends only on `spring-security-core`, so it forces no Spring Boot, web or persistence choice. |
 | `spring-shield-autoconfigure` | Spring Boot integration, configuration properties and default wiring. Internal. |
 | `spring-shield-spring-boot-starter` | The dependency you add. Aggregator only, no logic. |
 
@@ -71,6 +71,7 @@ springshield:
 |---|---|---|
 | `springshield.enabled` | `true` | Whether SpringShield configures anything. When `false` it backs off entirely and Spring Boot's own security defaults apply, so the application stays protected rather than becoming open. |
 | `springshield.web.public-endpoints` | *(empty)* | Request patterns reachable without authentication. Empty by default, so nothing is public until you name it. |
+| `springshield.authorization.enabled` | `true` | Whether method security is on, which is what makes `@RequiresPermission` and `@RequiresRole` take effect. |
 
 These are enforced. SpringShield contributes a `SecurityFilterChain` that permits the listed
 patterns and requires authentication for everything else, verified by tests that issue real
@@ -130,6 +131,45 @@ Requires JDK 21. Maven uses the JDK from `JAVA_HOME`, which may differ from whic
 ```bash
 mvn clean verify
 ```
+
+## Method authorization
+
+Guard a method with a permission or a role:
+
+```java
+@Service
+class InvoiceService {
+
+    @RequiresPermission("invoice.read")
+    List<Invoice> findAll() { ... }
+
+    @RequiresRole("ADMIN")
+    void deleteAll() { ... }
+}
+```
+
+A caller without it gets an `AccessDeniedException`, normally HTTP 403, and the method body
+never runs.
+
+**These are Spring Security annotations, not a parallel mechanism.** Each is meta-annotated
+with `@PreAuthorize`, so `@RequiresPermission("invoice.read")` is exactly equivalent to
+`@PreAuthorize("hasAuthority('invoice.read')")` and is enforced by the same method
+authorization. They compose freely with `@PreAuthorize`, `@PostAuthorize` and a custom
+`AuthorizationManager`.
+
+Two limitations inherited from Spring proxies, both of which surprise people:
+
+- **Self-invocation is not checked.** A method calling an annotated method on `this` does
+  not pass through the proxy, so nothing is enforced.
+- **Only Spring-managed beans are covered.** An object created with `new` is not proxied.
+
+Write the **bare** role name — `@RequiresRole("ADMIN")`, never `"ROLE_ADMIN"`. Spring
+Security adds the prefix when checking, so a prefixed value looks for `ROLE_ROLE_ADMIN` and
+silently never matches.
+
+Set `springshield.authorization.enabled=false` to switch method security off. Be careful:
+that does not relax one rule, it stops all of these annotations being enforced, so a method
+that still reads as guarded runs unguarded.
 
 ## Password encoding
 
@@ -198,7 +238,7 @@ Standing rules for changes to this project:
 
 - Never reimplement what Spring Security already provides.
 - Security changes require negative tests, not just happy-path tests.
-- `spring-shield-core` stays free of compile dependencies.
+- `spring-shield-core` takes no dependency beyond `spring-security-core`.
 - Public API changes are breaking changes and follow the deprecation policy.
 
 ## License

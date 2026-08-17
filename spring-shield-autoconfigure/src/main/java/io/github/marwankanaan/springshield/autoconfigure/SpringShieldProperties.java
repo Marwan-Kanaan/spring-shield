@@ -30,18 +30,35 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * auto-configuration backs off completely and the application keeps Spring Boot's own
  * security defaults, so it stays protected rather than becoming open. Defaults to true.
  * @param web Settings controlling which HTTP requests may be made without authentication.
+ * @param authorization Settings for method-level authorization.
  * @author mkanaan
  */
 @ConfigurationProperties(prefix = "springshield")
-public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @DefaultValue Web web) {
+public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @DefaultValue Web web,
+		@DefaultValue Authorization authorization) {
 
 	/**
-	 * Fills in a default {@link Web} when the {@code springshield.web} block is absent.
+	 * Fills in defaults for any block the application did not supply.
 	 */
 	public SpringShieldProperties {
 		if (web == null) {
 			web = new Web(null);
 		}
+		if (authorization == null) {
+			authorization = new Authorization(true);
+		}
+	}
+
+	/**
+	 * Settings for method-level authorization.
+	 *
+	 * @param enabled Whether method security is switched on, which is what makes
+	 * &#64;RequiresPermission and &#64;RequiresRole take effect. Defaults to true.
+	 * Setting this to false does not relax an existing rule, but it does stop those
+	 * annotations being enforced at all, so a method that looks guarded runs unguarded.
+	 * @author mkanaan
+	 */
+	public record Authorization(@DefaultValue("true") boolean enabled) {
 	}
 
 	/**
@@ -51,7 +68,8 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 	 * example /actuator/health or /api/public/**. Every request that does not match one
 	 * of these requires authentication. Patterns must start with '/' and must not expose
 	 * the whole application. Defaults to an empty list, so nothing is public until it is
-	 * named here. $(printf ' ') * @author mkanaan
+	 * named here.
+	 * @author mkanaan
 	 */
 	public record Web(@DefaultValue List<String> publicEndpoints) {
 
