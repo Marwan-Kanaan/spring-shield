@@ -1,6 +1,7 @@
 package io.github.marwankanaan.springshield.autoconfigure;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -9,9 +10,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 
 /**
  * Contributes SpringShield's default security filter chain.
@@ -110,7 +114,35 @@ public class SpringShieldWebSecurityAutoConfiguration {
 		});
 		http.formLogin(Customizer.withDefaults());
 		http.httpBasic(Customizer.withDefaults());
+		applyErrorContract(http);
 		return http.build();
+	}
+
+	/**
+	 * Installs SpringShield's JSON responses for 401 and 403.
+	 *
+	 * <p>
+	 * The 401 handler is registered only for callers that do not ask for HTML. A browser
+	 * navigating to a protected page still gets Spring Security's redirect to the login
+	 * form, because answering a navigation with a JSON body would leave the user staring
+	 * at raw text. Everything else, which is every API client, gets the JSON contract.
+	 *
+	 * <p>
+	 * The 403 handler applies to all callers. By the time access is denied the caller is
+	 * already authenticated, so there is no login page to send them to.
+	 * @param http the builder to configure
+	 */
+	private static void applyErrorContract(HttpSecurity http) {
+		SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter();
+		MediaTypeRequestMatcher htmlMatcher = new MediaTypeRequestMatcher(MediaType.TEXT_HTML);
+		// A client sending Accept: */* is not asking for HTML in any meaningful sense, so
+		// it
+		// must not be treated as a browser navigation.
+		htmlMatcher.setIgnoredMediaTypes(Set.of(MediaType.ALL));
+		http.exceptionHandling((handling) -> handling
+			.defaultAuthenticationEntryPointFor(new SpringShieldAuthenticationEntryPoint(writer),
+					new NegatedRequestMatcher(htmlMatcher))
+			.accessDeniedHandler(new SpringShieldAccessDeniedHandler(writer)));
 	}
 
 }

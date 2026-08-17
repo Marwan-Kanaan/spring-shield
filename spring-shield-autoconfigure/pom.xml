@@ -44,6 +44,21 @@
         </dependency>
 
         <!--
+            Needed to compile the AuthenticationEntryPoint and AccessDeniedHandler, which
+            take HttpServletRequest and HttpServletResponse. spring-security-web declares
+            this as provided, and provided scope is not transitive, so it has to be
+            repeated here.
+
+            provided rather than compile: the servlet container supplies it at runtime, and
+            a library that shipped its own copy could conflict with the container's.
+        -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
             Generates META-INF/spring-configuration-metadata.json so that springshield.*
             properties get IDE completion and documentation.
             optional=true keeps the processor off the consumer's compile classpath.
