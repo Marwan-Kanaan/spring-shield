@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.mkanaan</groupId>
+        <artifactId>springshield-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>springshield-autoconfigure</artifactId>
+    <packaging>jar</packaging>
+
+    <name>SpringShield Auto-Configuration</name>
+    <description>
+        Spring Boot auto-configuration for SpringShield: configuration properties,
+        conditional wiring and the default Spring Security integration.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.mkanaan</groupId>
+            <artifactId>springshield-core</artifactId>
+        </dependency>
+
+        <!-- @AutoConfiguration and the @ConditionalOn* family. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!--
+            Spring Boot 4 split security auto-configuration out of spring-boot-autoconfigure
+            into its own module, under the package org.springframework.boot.security.autoconfigure.
+            SpringShield needs it to order its own auto-configuration relative to Boot's and to
+            reuse SecurityProperties.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-security</artifactId>
+        </dependency>
+
+        <!--
+            Generates META-INF/spring-configuration-metadata.json so that springshield.*
+            properties get IDE completion and documentation.
+            optional=true keeps the processor off the consumer's compile classpath.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.mkanaan</groupId>
+    <artifactId>springshield-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>SpringShield</name>
+    <description>
+        An opinionated, secure-by-default Spring Boot starter that orchestrates Spring Security.
+        SpringShield is a developer-experience layer on top of Spring Security, not a replacement
+        for it.
+    </description>
+    <url>https://github.com/mkanaan/springshield</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>mkanaan</id>
+            <name>mkanaan</name>
+            <url>https://github.com/mkanaan</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/mkanaan/springshield.git</connection>
+        <developerConnection>scm:git:git@github.com:mkanaan/springshield.git</developerConnection>
+        <url>https://github.com/mkanaan/springshield</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/mkanaan/springshield/issues</url>
+    </issueManagement>
+
+    <!--
+        Module layering. Each module may depend only on modules listed above it:
+
+            springshield-core                 public abstractions, no Spring Boot coupling
+            springshield-autoconfigure        Spring Boot integration and default wiring
+            springshield-spring-boot-starter  dependency aggregator, no logic
+    -->
+    <modules>
+        <module>springshield-core</module>
+        <module>springshield-autoconfigure</module>
+        <module>springshield-spring-boot-starter</module>
+    </modules>
+
+    <properties>
+        <!--
+            Java 21 is the project baseline. Spring Boot 4.1's own parent defaults to
+            java.version 17, so this is a deliberate raise, not an inherited value.
+            maven.compiler.release (rather than source/target) makes the compiler
+            validate against the Java 21 API surface.
+        -->
+        <java.version>21</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!--
+            Single source of truth for the framework baseline. Spring Security, Spring
+            Framework, JUnit, AssertJ and Testcontainers versions are intentionally NOT
+            declared here: they are managed transitively by spring-boot-dependencies so
+            that the whole stack stays internally consistent.
+
+            Spring Boot 4.1.0 currently manages Spring Security 7.1.0.
+        -->
+        <spring-boot.version>4.1.0</spring-boot.version>
+
+        <!--
+            Plugin versions. spring-boot-dependencies pins these in <pluginManagement>,
+            but a BOM <scope>import</scope> only contributes <dependencyManagement>, so
+            they must be repeated here. The values match the ones Spring Boot 4.1.0 is
+            built and tested with.
+        -->
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
+        <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+        <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
+        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+        <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+        <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                Importing the BOM rather than inheriting from spring-boot-starter-parent.
+                SpringShield is a library, not an application: inheriting the starter parent
+                would drag in application concerns such as the repackaging plugin and
+                resource filtering that a published library must not carry.
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Internal modules, so downstream POMs never repeat a version. -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>springshield-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>springshield-autoconfigure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven-clean-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${maven-resources-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${maven-deploy-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <!--
+                        -parameters keeps constructor and method parameter names in the
+                        bytecode. Spring uses them for constructor injection and for
+                        @ConfigurationProperties binding, so this is required, not cosmetic.
+                    -->
+                    <parameters>true</parameters>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+            </plugin>
+
+            <!--
+                Fail the build early when the local toolchain cannot honour the baseline,
+                instead of failing later with a confusing compiler or bytecode error.
+                Note that Maven runs on the JDK from JAVA_HOME, which may differ from the
+                `java` binary first on PATH.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven-enforcer-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-baseline</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                    <message>SpringShield requires JDK 21 or later. Check JAVA_HOME.</message>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.9,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            Source and Javadoc jars are required by Maven Central but are slow and noisy
+            during day-to-day development, so they are bound to a release profile rather
+            than the default build.
+        -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

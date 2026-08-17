@@ -1,0 +1,59 @@
+# Build output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE - NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# IDE - VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*~
+
+# Security: never commit local secrets, keystores or credentials.
+# SpringShield integrates with identity providers, so a stray keystore or an
+# application-local.yml holding a client secret is a realistic mistake here.
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+*.keystore
+*.truststore
+application-local.yml
+application-local.yaml
+application-local.properties
+application-secrets.yml
+application-secrets.yaml
+application-secrets.properties
+.env
+.env.*
+!.env.example
