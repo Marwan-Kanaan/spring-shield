@@ -24,6 +24,13 @@ jobs:
 
     strategy:
       fail-fast: false
+      # Run the JDK versions one at a time rather than together. Both legs otherwise
+      # start simultaneously from the same runner IP range and each pull the whole
+      # dependency set, which is enough for Maven Central to answer 429 Too Many
+      # Requests and fail the build before it compiles anything. Serialising also lets
+      # the second leg reuse the dependency cache the first one populated, so the cost
+      # is far less than doubled wall-clock time.
+      max-parallel: 1
       matrix:
         java: ['21', '25']
 
@@ -42,8 +49,16 @@ jobs:
 
       # Runs the full gate set: formatting, enforcer (Java version, dependency
       # convergence), compilation, tests and SpotBugs with Find Security Bugs.
+      #
+      # The retry settings cover transient repository failures, which are not a defect
+      # in the project but will fail the build just as loudly. Without them a single
+      # dropped connection to Maven Central reads as a broken commit.
       - name: Build and verify
-        run: mvn -B --no-transfer-progress clean verify
+        run: >
+          mvn -B --no-transfer-progress
+          -Dmaven.wagon.http.retryHandler.count=3
+          -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+          clean verify
 
       - name: Upload SpotBugs reports
         # Reports are most useful precisely when the build failed.
