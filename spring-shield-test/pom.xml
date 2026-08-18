@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.marwan-kanaan</groupId>
+        <artifactId>spring-shield-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>spring-shield-test</artifactId>
+    <packaging>jar</packaging>
+
+    <name>SpringShield Test Support</name>
+    <description>
+        Helpers for testing applications that use SpringShield: authenticating a caller with
+        chosen roles and permissions, and asserting what a user is allowed to do.
+    </description>
+
+    <!--
+        Applications add this at test scope. Everything here is therefore compile scope in
+        this module but never reaches an application's runtime classpath.
+
+        These helpers must not weaken production behaviour. They populate a security context
+        the same way an application would; they never disable a check or grant an authority
+        the code under test would not have granted.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>io.github.marwan-kanaan</groupId>
+            <artifactId>spring-shield-core</artifactId>
+        </dependency>
+
+        <!--
+            @WithSecurityContext and the test context plumbing the annotations build on.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

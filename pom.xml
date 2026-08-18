@@ -52,11 +52,13 @@
 
             spring-shield-core                 public abstractions, no Spring Boot coupling
             spring-shield-autoconfigure        Spring Boot integration and default wiring
+            spring-shield-test                 test helpers for applications, test scope
             spring-shield-spring-boot-starter  dependency aggregator, no logic
     -->
     <modules>
         <module>spring-shield-core</module>
         <module>spring-shield-autoconfigure</module>
+        <module>spring-shield-test</module>
         <module>spring-shield-spring-boot-starter</module>
     </modules>
 
@@ -140,6 +142,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>spring-shield-autoconfigure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>spring-shield-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
