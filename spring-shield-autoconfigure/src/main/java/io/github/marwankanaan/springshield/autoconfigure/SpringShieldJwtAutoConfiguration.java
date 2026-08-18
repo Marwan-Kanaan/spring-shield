@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
 /**
@@ -109,11 +109,22 @@ public class SpringShieldJwtAutoConfiguration {
 	 * Form login and HTTP Basic remain configured alongside it. A JWT application simply
 	 * never sends those credentials, and leaving them in place means an application that
 	 * uses both is not silently cut off from one of them.
+	 *
+	 * <p>
+	 * Token claims are mapped to authorities here, so a permission in the token matches *
+	 * uses both is not silently cut off from one of them.#64;RequiresPermission directly
+	 * and a role gains the ROLE_ prefix.
+	 * @param properties the bound {@code springshield} configuration
 	 * @return the customizer applied to the chain
 	 */
 	@Bean
-	SpringShieldHttpSecurityCustomizer springShieldJwtHttpSecurityCustomizer() {
-		return (http) -> http.oauth2ResourceServer((resourceServer) -> resourceServer.jwt(Customizer.withDefaults()));
+	SpringShieldHttpSecurityCustomizer springShieldJwtHttpSecurityCustomizer(SpringShieldProperties properties) {
+		SpringShieldProperties.Jwt.ClaimMapping mapping = properties.jwt().claimMapping();
+		JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+		authenticationConverter.setJwtGrantedAuthoritiesConverter(
+				new SpringShieldJwtAuthoritiesConverter(mapping.permissions(), mapping.roles()));
+		return (http) -> http.oauth2ResourceServer((resourceServer) -> resourceServer
+			.jwt((jwt) -> jwt.jwtAuthenticationConverter(authenticationConverter)));
 	}
 
 }

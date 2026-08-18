@@ -49,7 +49,7 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 			authorization = new Authorization(true);
 		}
 		if (jwt == null) {
-			jwt = new Jwt(null, null);
+			jwt = new Jwt(null, null, null);
 		}
 	}
 
@@ -82,9 +82,10 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 	 * not checked at all: any caller holding a valid token from the issuer is accepted,
 	 * including one issued for a different service. Set this whenever the issuer serves
 	 * more than one application.
+	 * @param claimMapping Which token claims carry the caller's roles and permissions.
 	 * @author mkanaan
 	 */
-	public record Jwt(String issuerUri, @DefaultValue List<String> audiences) {
+	public record Jwt(String issuerUri, @DefaultValue List<String> audiences, @DefaultValue ClaimMapping claimMapping) {
 
 		/**
 		 * Validates and normalizes the JWT settings.
@@ -101,6 +102,9 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 				}
 			}
 			audiences = (audiences != null) ? List.copyOf(validateAudiences(audiences)) : List.of();
+			if (claimMapping == null) {
+				claimMapping = new ClaimMapping("scope", null);
+			}
 		}
 
 		private static List<String> validateAudiences(List<String> values) {
@@ -114,6 +118,49 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 				validated.add(value.trim());
 			}
 			return validated;
+		}
+
+		/**
+		 * Which token claims carry the caller's roles and permissions.
+		 *
+		 * <p>
+		 * Only claims that survived signature and issuer validation are read, so nothing
+		 * here can be influenced by an unverified token.
+		 *
+		 * @param permissions Claim holding the caller's permissions, mapped to
+		 * authorities unchanged so a value of invoice.read satisfies
+		 * &#64;RequiresPermission("invoice.read"). Defaults to scope, the standard OAuth2
+		 * claim. Accepts either a space-delimited string or a list.
+		 * @param roles Claim holding the caller's roles, mapped to authorities with the
+		 * ROLE_ prefix Spring Security expects. Unset by default and deliberately so:
+		 * there is no standard roles claim, and quietly adopting whatever an issuer
+		 * happens to put in a claim called roles or groups could grant roles nobody
+		 * configured. Values must be bare names such as ADMIN; a value of ROLE_ADMIN
+		 * becomes ROLE_ROLE_ADMIN and matches nothing.
+		 * @author mkanaan
+		 */
+		public record ClaimMapping(@DefaultValue("scope") String permissions, String roles) {
+
+			/**
+			 * Validates the claim names.
+			 * @throws IllegalArgumentException if either claim name is blank
+			 */
+			public ClaimMapping {
+				permissions = requireClaimName(permissions, "permissions");
+				roles = (roles != null) ? requireClaimName(roles, "roles") : null;
+			}
+
+			private static String requireClaimName(String value, String name) {
+				String trimmed = (value != null) ? value.trim() : "";
+				if (trimmed.isEmpty()) {
+					throw new IllegalArgumentException(
+							("springshield.jwt.claim-mapping.%s must not be blank. Remove the property to use the "
+									+ "default, or name the claim to read.")
+								.formatted(name));
+				}
+				return trimmed;
+			}
+
 		}
 
 	}

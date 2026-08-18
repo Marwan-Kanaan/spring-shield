@@ -73,6 +73,8 @@ springshield:
 | `springshield.authorization.enabled` | `true` | Whether method security is on, which is what makes `@RequiresPermission` and `@RequiresRole` take effect. |
 | `springshield.jwt.issuer-uri` | *(unset)* | Identity provider issuing your bearer tokens. Setting it switches JWT validation on. |
 | `springshield.jwt.audiences` | *(empty)* | Values this service answers to. Empty means the audience is **not checked**, so any valid token from the issuer is accepted. |
+| `springshield.jwt.claim-mapping.permissions` | `scope` | Token claim mapped to permission authorities. |
+| `springshield.jwt.claim-mapping.roles` | *(unset)* | Token claim mapped to `ROLE_` authorities. Unset means roles are not read from tokens. |
 
 These are enforced. SpringShield contributes a `SecurityFilterChain` that permits the listed
 patterns and requires authentication for everything else, verified by tests that issue real
@@ -206,6 +208,38 @@ this.
 Several values mean *any one of them*, not all: a token is accepted when its `aud` claim
 contains at least one. That suits a service known by more than one name.
 
+
+### Turning claims into authorities
+
+A validated token's claims become the authorities `@RequiresPermission` and `@RequiresRole`
+check against:
+
+```yaml
+springshield:
+  jwt:
+    claim-mapping:
+      permissions: scope   # default
+      roles: roles         # unset by default
+```
+
+```text
+permissions claim   invoice.read  ->  authority  invoice.read
+roles claim         ADMIN         ->  authority  ROLE_ADMIN
+```
+
+So a token carrying `scope: "invoice.read"` satisfies `@RequiresPermission("invoice.read")`
+with no extra configuration. Either claim may be a space-delimited string or a list.
+
+**`roles` is unset by default, deliberately.** There is no standard roles claim, and quietly
+adopting whatever an issuer happens to put in a claim called `roles` or `groups` could grant
+roles nobody configured. Name the claim to opt in.
+
+Role values must be **bare names** — `ADMIN`, not `ROLE_ADMIN`. The prefix is added during
+mapping, so a value that already carries it becomes `ROLE_ROLE_ADMIN` and matches nothing.
+If a role that should match does not, check the issuer's claim format first.
+
+Nested claim paths such as Keycloak's `realm_access.roles` are not supported. Declare your
+own `JwtAuthenticationConverter` bean for those.
 ### Startup depends on your identity provider
 
 The issuer's metadata is fetched **during startup**, from

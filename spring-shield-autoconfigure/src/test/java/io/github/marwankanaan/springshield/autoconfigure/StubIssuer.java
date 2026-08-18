@@ -35,6 +35,12 @@ final class StubIssuer implements AutoCloseable {
 
 	private final String issuerUri;
 
+	/**
+	 * Key identifier published in the JWK set. A token must be signed with the same id or
+	 * the decoder cannot tell which published key to verify it against.
+	 */
+	static final String KEY_ID = "stub";
+
 	private final KeyPair keyPair;
 
 	/**
@@ -61,8 +67,8 @@ final class StubIssuer implements AutoCloseable {
 	 */
 	private static String jwks(RSAPublicKey publicKey) {
 		return """
-				{"keys":[{"kty":"RSA","use":"sig","alg":"RS256","kid":"stub","n":"%s","e":"%s"}]}"""
-			.formatted(base64Url(publicKey.getModulus()), base64Url(publicKey.getPublicExponent()));
+				{"keys":[{"kty":"RSA","use":"sig","alg":"RS256","kid":"%s","n":"%s","e":"%s"}]}""".formatted(KEY_ID,
+				base64Url(publicKey.getModulus()), base64Url(publicKey.getPublicExponent()));
 	}
 
 	/**
