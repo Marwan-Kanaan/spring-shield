@@ -1,3 +1,4 @@
 io.github.marwankanaan.springshield.autoconfigure.SpringShieldAutoConfiguration
 io.github.marwankanaan.springshield.autoconfigure.SpringShieldWebSecurityAutoConfiguration
 io.github.marwankanaan.springshield.autoconfigure.SpringShieldMethodSecurityAutoConfiguration
+io.github.marwankanaan.springshield.autoconfigure.SpringShieldJwtAutoConfiguration

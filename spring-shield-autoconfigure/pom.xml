@@ -44,6 +44,27 @@
         </dependency>
 
         <!--
+            JWT support, optional. Declared optional so it is not forced on applications
+            that do not use bearer tokens: adding
+            spring-boot-starter-oauth2-resource-server to your own build is what activates
+            SpringShield's JWT validation. Optional dependencies are still on this module's
+            own compile and test classpath, so the code and its tests build normally.
+
+            Only the two Spring Security artifacts, not the Boot starter, to avoid dragging
+            spring-boot-starter into the graph of a library.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-resource-server</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
             Needed to compile the AuthenticationEntryPoint and AccessDeniedHandler, which
             take HttpServletRequest and HttpServletResponse. spring-security-web declares
             this as provided, and provided scope is not transitive, so it has to be

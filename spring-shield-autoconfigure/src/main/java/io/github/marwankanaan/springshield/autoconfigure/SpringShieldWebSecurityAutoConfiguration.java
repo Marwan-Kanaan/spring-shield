@@ -3,6 +3,7 @@ package io.github.marwankanaan.springshield.autoconfigure;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -100,11 +101,14 @@ public class SpringShieldWebSecurityAutoConfiguration {
 	 * no longer needed.
 	 * @param http the builder Spring Security provides
 	 * @param properties the bound {@code springshield} configuration
+	 * @param customizers optional features, such as JWT support, that add themselves to
+	 * the chain
 	 * @return the filter chain
 	 */
 	@Bean
 	@ConditionalOnMissingBean(SecurityFilterChain.class)
-	SecurityFilterChain springShieldSecurityFilterChain(HttpSecurity http, SpringShieldProperties properties) {
+	SecurityFilterChain springShieldSecurityFilterChain(HttpSecurity http, SpringShieldProperties properties,
+			ObjectProvider<SpringShieldHttpSecurityCustomizer> customizers) {
 		List<String> publicEndpoints = properties.web().publicEndpoints();
 		http.authorizeHttpRequests((requests) -> {
 			if (!publicEndpoints.isEmpty()) {
@@ -115,6 +119,7 @@ public class SpringShieldWebSecurityAutoConfiguration {
 		http.formLogin(Customizer.withDefaults());
 		http.httpBasic(Customizer.withDefaults());
 		applyErrorContract(http);
+		customizers.orderedStream().forEach((customizer) -> customizer.customize(http));
 		return http.build();
 	}
 

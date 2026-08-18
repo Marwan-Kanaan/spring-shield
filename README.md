@@ -3,11 +3,10 @@
 An opinionated, secure-by-default Spring Boot starter that orchestrates Spring Security.
 
 > **Status: pre-alpha, nothing published yet.**
-> Request authorization works: SpringShield contributes a filter chain that denies by
-> default and permits the endpoints you list. What does **not** exist yet is authentication
-> of its own (JWT and OIDC are planned, so users are still supplied the usual Spring
-> Security way), permission-based authorization, and the `@RequiresPermission` annotations.
-> The public API may still change without notice.
+> Working: deny-by-default request authorization, JWT bearer token validation, permission
+> and role annotations, password encoding, and a consistent error contract. Not yet built:
+> OIDC login, persistence adapters, and test-support helpers. The public API may still
+> change without notice.
 
 ## What it is
 
@@ -72,14 +71,16 @@ springshield:
 | `springshield.enabled` | `true` | Whether SpringShield configures anything. When `false` it backs off entirely and Spring Boot's own security defaults apply, so the application stays protected rather than becoming open. |
 | `springshield.web.public-endpoints` | *(empty)* | Request patterns reachable without authentication. Empty by default, so nothing is public until you name it. |
 | `springshield.authorization.enabled` | `true` | Whether method security is on, which is what makes `@RequiresPermission` and `@RequiresRole` take effect. |
+| `springshield.jwt.issuer-uri` | *(unset)* | Identity provider issuing your bearer tokens. Setting it switches JWT validation on. |
+| `springshield.jwt.audiences` | *(empty)* | Values this service answers to. Empty means the audience is **not checked**, so any valid token from the issuer is accepted. |
 
 These are enforced. SpringShield contributes a `SecurityFilterChain` that permits the listed
 patterns and requires authentication for everything else, verified by tests that issue real
 requests through the chain.
 
-What is **not** implemented yet is any authentication mechanism of SpringShield's own. The
-chain keeps Spring Boot's form login and HTTP Basic, so you still need to supply users the
-usual Spring Security way. JWT and OIDC come later.
+For authentication, configure [JWT bearer tokens](#jwt-bearer-tokens). The chain also keeps
+Spring Boot's form login and HTTP Basic, so username and password applications still supply
+users the usual Spring Security way.
 
 ### Configuration mistakes stop startup
 
@@ -102,8 +103,8 @@ application that genuinely needs no authentication should say so by declaring it
 
 ### Planned
 
-Not yet implemented, listed so the intended shape is clear: `springshield.authentication.mode`,
-and the `springshield.jwt.*` block for issuer and audience validation.
+Not yet implemented, listed so the intended shape is clear: OIDC login for browser
+applications, and JPA/JDBC adapters for loading users and permissions.
 
 ## Backing off
 
@@ -168,6 +169,57 @@ let a caller map your permission model by probing endpoints.
 A browser navigating to a protected page still gets the login redirect rather than a JSON
 body it cannot render. The JSON contract applies to clients that do not ask for HTML.
 
+
+## JWT bearer tokens
+
+Add the resource server starter and set the issuer:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+</dependency>
+```
+
+```yaml
+springshield:
+  jwt:
+    issuer-uri: https://identity.example.com
+    audiences:
+      - https://api.example.com
+```
+
+Setting `issuer-uri` is what switches JWT validation on — there is no separate enable flag,
+so you cannot ask for JWT mode without supplying the issuer it needs.
+
+Every token is checked for signature, expiry, issuer, and audience. All of it is Spring
+Security's OAuth2 resource server; SpringShield chooses the validators and never parses a
+token or reads an unvalidated claim.
+
+### Set `audiences`
+
+It is optional and defaults to empty, which means **the audience is not checked at all**.
+Any valid token from that issuer is then accepted — including one the issuer minted for a
+different service entirely. If your identity provider serves more than one application, set
+this.
+
+Several values mean *any one of them*, not all: a token is accepted when its `aud` claim
+contains at least one. That suits a service known by more than one name.
+
+### Startup depends on your identity provider
+
+The issuer's metadata is fetched **during startup**, from
+`<issuer-uri>/.well-known/openid-configuration`. If the identity provider is unreachable
+then, the application does not start.
+
+That is deliberate — fail-fast rather than fail-open, and a mistyped issuer URI is caught at
+deployment instead of surfacing later as rejected requests. The cost is a startup dependency
+on the provider. If you must start during a provider outage, declare your own `JwtDecoder`
+built with `NimbusJwtDecoder.withJwkSetUri(...)` or from a key you already hold, and
+SpringShield backs off.
+
+Signing keys are refreshed from the JWKS endpoint after startup, so routine key rotation
+needs no configuration change and no restart.
 ## Method authorization
 
 Guard a method with a permission or a role:

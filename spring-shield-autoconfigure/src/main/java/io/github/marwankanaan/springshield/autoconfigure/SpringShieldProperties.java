@@ -31,11 +31,12 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * security defaults, so it stays protected rather than becoming open. Defaults to true.
  * @param web Settings controlling which HTTP requests may be made without authentication.
  * @param authorization Settings for method-level authorization.
+ * @param jwt Settings for validating JWT bearer tokens.
  * @author mkanaan
  */
 @ConfigurationProperties(prefix = "springshield")
 public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @DefaultValue Web web,
-		@DefaultValue Authorization authorization) {
+		@DefaultValue Authorization authorization, @DefaultValue Jwt jwt) {
 
 	/**
 	 * Fills in defaults for any block the application did not supply.
@@ -46,6 +47,9 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 		}
 		if (authorization == null) {
 			authorization = new Authorization(true);
+		}
+		if (jwt == null) {
+			jwt = new Jwt(null, null);
 		}
 	}
 
@@ -59,6 +63,59 @@ public record SpringShieldProperties(@DefaultValue("true") boolean enabled, @Def
 	 * @author mkanaan
 	 */
 	public record Authorization(@DefaultValue("true") boolean enabled) {
+	}
+
+	/**
+	 * Settings for validating JWT bearer tokens.
+	 *
+	 * <p>
+	 * Setting {@code issuer-uri} is what switches JWT validation on. There is no separate
+	 * enable flag, so it is impossible to configure a mode without the issuer it needs.
+	 *
+	 * @param issuerUri The identity provider that issues the tokens, for example
+	 * https://identity.example.com. Its signing keys are discovered from this URI and
+	 * refreshed automatically, so key rotation needs no configuration or restart. Tokens
+	 * whose iss claim does not match exactly are rejected. Leave unset to disable JWT
+	 * validation.
+	 * @param audiences Values this service answers to. A token is accepted when its aud
+	 * claim contains at least one of them. Empty by default, which means the audience is
+	 * not checked at all: any caller holding a valid token from the issuer is accepted,
+	 * including one issued for a different service. Set this whenever the issuer serves
+	 * more than one application.
+	 * @author mkanaan
+	 */
+	public record Jwt(String issuerUri, @DefaultValue List<String> audiences) {
+
+		/**
+		 * Validates and normalizes the JWT settings.
+		 * @throws IllegalArgumentException if the issuer URI is blank or an audience is
+		 * blank
+		 */
+		public Jwt {
+			if (issuerUri != null) {
+				issuerUri = issuerUri.trim();
+				if (issuerUri.isEmpty()) {
+					throw new IllegalArgumentException(
+							"springshield.jwt.issuer-uri must not be blank. Remove the property to disable JWT "
+									+ "validation, or set it to the issuer's URI.");
+				}
+			}
+			audiences = (audiences != null) ? List.copyOf(validateAudiences(audiences)) : List.of();
+		}
+
+		private static List<String> validateAudiences(List<String> values) {
+			List<String> validated = new ArrayList<>(values.size());
+			for (String value : values) {
+				if (value == null || value.isBlank()) {
+					throw new IllegalArgumentException(
+							"springshield.jwt.audiences must not contain a blank entry. A blank audience would "
+									+ "never match a token and is almost certainly a stray list item.");
+				}
+				validated.add(value.trim());
+			}
+			return validated;
+		}
+
 	}
 
 	/**
