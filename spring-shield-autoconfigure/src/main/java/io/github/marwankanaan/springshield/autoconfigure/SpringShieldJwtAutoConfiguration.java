@@ -1,5 +1,7 @@
 package io.github.marwankanaan.springshield.autoconfigure;
 
+import io.github.marwankanaan.springshield.SecurityPermissionProvider;
+
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -85,6 +87,7 @@ public class SpringShieldJwtAutoConfiguration {
 	 * first, so a forged or tampered token is rejected before any claim is looked at, and
 	 * no unverified claim ever reaches an authorization decision.
 	 * @param properties the bound {@code springshield} configuration
+	 * @param permissions expands roles from the token into the permissions they grant
 	 * @return the configured decoder
 	 */
 	@Bean
@@ -115,14 +118,16 @@ public class SpringShieldJwtAutoConfiguration {
 	 * uses both is not silently cut off from one of them.#64;RequiresPermission directly
 	 * and a role gains the ROLE_ prefix.
 	 * @param properties the bound {@code springshield} configuration
+	 * @param permissions expands roles from the token into the permissions they grant
 	 * @return the customizer applied to the chain
 	 */
 	@Bean
-	SpringShieldHttpSecurityCustomizer springShieldJwtHttpSecurityCustomizer(SpringShieldProperties properties) {
+	SpringShieldHttpSecurityCustomizer springShieldJwtHttpSecurityCustomizer(SpringShieldProperties properties,
+			SecurityPermissionProvider permissions) {
 		SpringShieldProperties.Jwt.ClaimMapping mapping = properties.jwt().claimMapping();
 		JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
 		authenticationConverter.setJwtGrantedAuthoritiesConverter(
-				new SpringShieldJwtAuthoritiesConverter(mapping.permissions(), mapping.roles()));
+				new SpringShieldJwtAuthoritiesConverter(mapping.permissions(), mapping.roles(), permissions));
 		return (http) -> http.oauth2ResourceServer((resourceServer) -> resourceServer
 			.jwt((jwt) -> jwt.jwtAuthenticationConverter(authenticationConverter)));
 	}

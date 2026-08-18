@@ -3,9 +3,14 @@ package io.github.marwankanaan.springshield.autoconfigure;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.marwankanaan.springshield.SecurityPermission;
+import io.github.marwankanaan.springshield.SecurityPermissionProvider;
+import io.github.marwankanaan.springshield.SecurityRole;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -41,7 +46,8 @@ class SpringShieldJwtAuthoritiesConverterTests {
 	@Test
 	@DisplayName("a permission is used verbatim, so it matches @RequiresPermission directly")
 	void shouldMapPermissionsWithoutAPrefix() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null);
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null,
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("scope", "invoice.read"))).containsExactly("invoice.read");
 	}
@@ -49,7 +55,8 @@ class SpringShieldJwtAuthoritiesConverterTests {
 	@Test
 	@DisplayName("the standard scope claim may be a space-delimited string")
 	void shouldSplitASpaceDelimitedScopeClaim() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null);
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null,
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("scope", "invoice.read invoice.export")))
 			.containsExactlyInAnyOrder("invoice.read", "invoice.export");
@@ -57,7 +64,8 @@ class SpringShieldJwtAuthoritiesConverterTests {
 
 	@Test
 	void shouldReadAPermissionsClaimGivenAsAList() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("permissions", null);
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("permissions", null,
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("permissions", List.of("invoice.read", "invoice.export"))))
 			.containsExactlyInAnyOrder("invoice.read", "invoice.export");
@@ -66,14 +74,16 @@ class SpringShieldJwtAuthoritiesConverterTests {
 	@Test
 	@DisplayName("a role gains the ROLE_ prefix Spring Security expects")
 	void shouldMapRolesWithTheRolePrefix() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles");
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("roles", List.of("ADMIN")))).containsExactly("ROLE_ADMIN");
 	}
 
 	@Test
 	void shouldCombinePermissionsAndRolesFromSeparateClaims() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles");
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				SecurityPermissionProvider.none());
 		Jwt jwt = Jwt.withTokenValue("token")
 			.header("alg", "RS256")
 			.subject("ada")
@@ -93,7 +103,8 @@ class SpringShieldJwtAuthoritiesConverterTests {
 	 */
 	@Test
 	void shouldIgnoreARolesClaimWhenNoRolesClaimIsConfigured() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null);
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null,
+				SecurityPermissionProvider.none());
 		Jwt jwt = Jwt.withTokenValue("token")
 			.header("alg", "RS256")
 			.subject("ada")
@@ -114,23 +125,97 @@ class SpringShieldJwtAuthoritiesConverterTests {
 	@Test
 	@DisplayName("a ROLE_-prefixed claim value becomes ROLE_ROLE_ and matches nothing")
 	void shouldDoublePrefixARoleThatAlreadyCarriesThePrefix() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles");
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("roles", List.of("ROLE_ADMIN")))).containsExactly("ROLE_ROLE_ADMIN");
 	}
 
 	@Test
 	void shouldReturnNoAuthoritiesWhenTheClaimIsAbsent() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles");
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("sub", "ada"))).isEmpty();
 	}
 
 	@Test
 	void shouldNotRepeatAnAuthorityPresentInBothClaims() {
-		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "scope");
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "scope",
+				SecurityPermissionProvider.none());
 
 		assertThat(authorities(converter, token("scope", "shared"))).containsExactly("shared", "ROLE_shared");
+	}
+
+	/**
+	 * The reason SecurityPermissionProvider exists on the token path: the token carries
+	 * only a role, and the permission it grants is resolved separately.
+	 */
+	@Test
+	@DisplayName("a role from the token is expanded into the permissions it grants")
+	void shouldExpandRolesIntoPermissions() {
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				(roles) -> roles.contains(SecurityRole.of("ADMIN")) ? Set.of(SecurityPermission.of("invoice.approve"))
+						: Set.of());
+
+		assertThat(authorities(converter, token("roles", List.of("ADMIN")))).containsExactlyInAnyOrder("ROLE_ADMIN",
+				"invoice.approve");
+	}
+
+	@Test
+	void shouldNotExpandWhenNoRolesClaimIsConfigured() {
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", null,
+				(roles) -> Set.of(SecurityPermission.of("should.not.appear")));
+
+		assertThat(authorities(converter, token("scope", "invoice.read"))).containsExactly("invoice.read");
+	}
+
+	/**
+	 * Expansion is skipped for a value that cannot be a role name at all. It still
+	 * becomes an authority, so nothing is lost, but failing the whole request over one
+	 * unexpected claim value would take an application down for a change at its identity
+	 * provider.
+	 */
+	@Test
+	@DisplayName("an unusable role value is still an authority, just not expanded")
+	void shouldSkipExpansionForAValueThatCannotBeARoleName() {
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				(roles) -> Set.of(SecurityPermission.of("expanded")));
+
+		assertThat(authorities(converter, token("roles", List.of("ROLE_ADMIN")))).containsExactly("ROLE_ROLE_ADMIN");
+	}
+
+	@Test
+	void shouldNotCallTheProviderWhenTheTokenCarriesNoRoles() {
+		int[] calls = { 0 };
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				(roles) -> {
+					calls[0]++;
+					return Set.of();
+				});
+
+		authorities(converter, token("scope", "invoice.read"));
+
+		assertThat(calls[0]).isZero();
+	}
+
+	/**
+	 * All roles reach the provider in one call, so a token with several roles still costs
+	 * a single lookup on a path that runs at every request.
+	 */
+	@Test
+	void shouldPassEveryRoleToTheProviderInOneCall() {
+		int[] calls = { 0 };
+		SpringShieldJwtAuthoritiesConverter converter = new SpringShieldJwtAuthoritiesConverter("scope", "roles",
+				(roles) -> {
+					calls[0]++;
+					assertThat(roles).hasSize(3);
+					return Set.of();
+				});
+
+		authorities(converter, token("roles", List.of("ADMIN", "AUDITOR", "OPERATOR")));
+
+		assertThat(calls[0]).isEqualTo(1);
 	}
 
 }
