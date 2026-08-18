@@ -2,6 +2,7 @@ package io.github.marwankanaan.springshield;
 
 import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -29,13 +30,23 @@ import java.util.Set;
  * Requiring an explicit copy keeps persistence concerns out of the authorization path and
  * makes the object safe to share between threads.
  *
- * <h2>No password</h2>
+ * <h2>The password is optional, and always already encoded</h2>
  *
  * <p>
- * There is deliberately no password here. Most SpringShield deployments authenticate with
- * JWT or OIDC, where no password exists at all, and a field that is meaningless in the
- * common case invites unsafe handling. Password verification stays inside Spring
- * Security's own components, which are built for it.
+ * {@code encodedPassword} holds the hash from your user store, exactly as stored. It is
+ * absent for JWT and OIDC deployments, where no password exists at all, and present only
+ * when the application authenticates with a username and password.
+ *
+ * <p>
+ * The name is a promise: whatever goes here must already have been through a
+ * {@code PasswordEncoder}. SpringShield never encodes it for you and never compares it
+ * itself; Spring Security does both. Putting a plaintext password here would store and
+ * compare it as though it were a hash, and nothing would fail loudly.
+ *
+ * <p>
+ * A user with no encoded password cannot authenticate with a password. Every attempt is
+ * rejected, so an account that exists only for token-based access cannot be signed into
+ * with a guessed password.
  *
  * <h2>Authorization</h2>
  *
@@ -54,6 +65,8 @@ import java.util.Set;
  * an existing user.
  *
  * @param username identifies the user, never blank
+ * @param encodedPassword the already-encoded password from your user store, or empty when
+ * the account has none, never {@code null}
  * @param roles the roles held, never {@code null}, possibly empty, immutable
  * @param permissions the permissions held, never {@code null}, possibly empty, immutable
  * @param enabled whether the account is active; a disabled account must not authenticate
@@ -64,8 +77,9 @@ import java.util.Set;
  * password past its maximum age
  * @author mkanaan
  */
-public record SecurityUser(String username, Set<SecurityRole> roles, Set<SecurityPermission> permissions,
-		boolean enabled, boolean accountNonExpired, boolean accountNonLocked, boolean credentialsNonExpired) {
+public record SecurityUser(String username, Optional<String> encodedPassword, Set<SecurityRole> roles,
+		Set<SecurityPermission> permissions, boolean enabled, boolean accountNonExpired, boolean accountNonLocked,
+		boolean credentialsNonExpired) {
 
 	/**
 	 * Canonical constructor, which validates the username and defensively copies the role
@@ -85,6 +99,7 @@ public record SecurityUser(String username, Set<SecurityRole> roles, Set<Securit
 		if (username.isEmpty()) {
 			throw new IllegalArgumentException("username must not be blank");
 		}
+		encodedPassword = (encodedPassword != null) ? encodedPassword : Optional.empty();
 		Objects.requireNonNull(roles, "roles must not be null");
 		Objects.requireNonNull(permissions, "permissions must not be null");
 		// Set.copyOf both copies and rejects null elements, so a caller cannot leave a
@@ -131,6 +146,8 @@ public record SecurityUser(String username, Set<SecurityRole> roles, Set<Securit
 
 		private final String username;
 
+		private String encodedPassword;
+
 		private final Set<SecurityRole> roles = new LinkedHashSet<>();
 
 		private final Set<SecurityPermission> permissions = new LinkedHashSet<>();
@@ -145,6 +162,29 @@ public record SecurityUser(String username, Set<SecurityRole> roles, Set<Securit
 
 		private Builder(String username) {
 			this.username = username;
+		}
+
+		/**
+		 * Sets the already-encoded password from your user store.
+		 *
+		 * <p>
+		 * The value must already have been through a {@code PasswordEncoder}. Passing a
+		 * plaintext password here stores and compares it as though it were a hash, and
+		 * nothing fails loudly.
+		 *
+		 * <pre>
+		 * .encodedPassword(account.getPasswordHash())
+		 * </pre>
+		 *
+		 * <p>
+		 * Leave it unset for accounts that authenticate by token. Such a user cannot sign
+		 * in with a password: every attempt is rejected.
+		 * @param encodedPassword the stored password hash, or {@code null} for none
+		 * @return this builder
+		 */
+		public Builder encodedPassword(String encodedPassword) {
+			this.encodedPassword = encodedPassword;
+			return this;
 		}
 
 		/**
@@ -236,8 +276,9 @@ public record SecurityUser(String username, Set<SecurityRole> roles, Set<Securit
 		 * @throws IllegalArgumentException if the username is blank
 		 */
 		public SecurityUser build() {
-			return new SecurityUser(this.username, this.roles, this.permissions, this.enabled, this.accountNonExpired,
-					this.accountNonLocked, this.credentialsNonExpired);
+			return new SecurityUser(this.username, Optional.ofNullable(this.encodedPassword), this.roles,
+					this.permissions, this.enabled, this.accountNonExpired, this.accountNonLocked,
+					this.credentialsNonExpired);
 		}
 
 	}

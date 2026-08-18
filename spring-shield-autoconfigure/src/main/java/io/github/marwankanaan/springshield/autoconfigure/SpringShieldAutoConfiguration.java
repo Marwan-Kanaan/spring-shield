@@ -1,12 +1,17 @@
 package io.github.marwankanaan.springshield.autoconfigure;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import io.github.marwankanaan.springshield.SecurityPermissionProvider;
+import io.github.marwankanaan.springshield.SecurityUserProvider;
+
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -56,6 +61,44 @@ public class SpringShieldAutoConfiguration {
 	 * Creates the auto-configuration. Spring calls this; application code should not.
 	 */
 	public SpringShieldAutoConfiguration() {
+	}
+
+	/**
+	 * Default role-to-permission expansion, used when the application supplies none.
+	 *
+	 * <p>
+	 * Grants nothing, so authorization falls back to the roles and permissions already on
+	 * the user. A default that guessed would hand out access nobody configured.
+	 * @return a provider that grants no additional permissions
+	 */
+	@Bean
+	@ConditionalOnMissingBean(SecurityPermissionProvider.class)
+	SecurityPermissionProvider springShieldPermissionProvider() {
+		return SecurityPermissionProvider.none();
+	}
+
+	/**
+	 * Adapts an application's {@link SecurityUserProvider} into the
+	 * {@link UserDetailsService} Spring Security authenticates through.
+	 *
+	 * <p>
+	 * Contributed only when the application actually publishes a provider. Without one
+	 * SpringShield stays out of the way, and Spring Boot's own user details handling
+	 * applies as usual.
+	 *
+	 * <p>
+	 * Backs off if the application declares its own {@code UserDetailsService}, which is
+	 * the supported way to take over authentication entirely.
+	 * @param users the application's provider
+	 * @param permissions role-to-permission expansion
+	 * @return the adapter
+	 */
+	@Bean
+	@ConditionalOnBean(SecurityUserProvider.class)
+	@ConditionalOnMissingBean(UserDetailsService.class)
+	UserDetailsService springShieldUserDetailsService(SecurityUserProvider users,
+			SecurityPermissionProvider permissions) {
+		return new SecurityUserDetailsService(users, permissions);
 	}
 
 	/**

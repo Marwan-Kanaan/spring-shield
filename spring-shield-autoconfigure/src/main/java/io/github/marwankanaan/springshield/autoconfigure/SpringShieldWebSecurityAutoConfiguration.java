@@ -117,7 +117,13 @@ public class SpringShieldWebSecurityAutoConfiguration {
 			requests.anyRequest().authenticated();
 		});
 		http.formLogin(Customizer.withDefaults());
-		http.httpBasic(Customizer.withDefaults());
+		// The JSON entry point is set on HTTP Basic explicitly. httpBasic() otherwise
+		// installs
+		// its own, so a rejected credential would answer with a bare 401 while a missing
+		// one
+		// answered with the documented body.
+		http.httpBasic((basic) -> basic.authenticationEntryPoint(
+				new SpringShieldAuthenticationEntryPoint(new SecurityErrorResponseWriter(), "SpringShield")));
 		applyErrorContract(http);
 		customizers.orderedStream().forEach((customizer) -> customizer.customize(http));
 		return http.build();

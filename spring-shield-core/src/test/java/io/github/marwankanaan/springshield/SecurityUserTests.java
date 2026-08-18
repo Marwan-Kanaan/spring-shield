@@ -1,6 +1,7 @@
 package io.github.marwankanaan.springshield;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
@@ -166,20 +167,20 @@ class SecurityUserTests {
 		withNull.add(null);
 
 		assertThatExceptionOfType(NullPointerException.class)
-			.isThrownBy(() -> new SecurityUser("ada", withNull, Set.of(), true, true, true, true));
+			.isThrownBy(() -> new SecurityUser("ada", Optional.empty(), withNull, Set.of(), true, true, true, true));
 	}
 
 	@Test
 	void shouldRejectNullRoleSet() {
 		assertThatExceptionOfType(NullPointerException.class)
-			.isThrownBy(() -> new SecurityUser("ada", null, Set.of(), true, true, true, true))
+			.isThrownBy(() -> new SecurityUser("ada", Optional.empty(), null, Set.of(), true, true, true, true))
 			.withMessageContaining("roles must not be null");
 	}
 
 	@Test
 	void shouldRejectNullPermissionSet() {
 		assertThatExceptionOfType(NullPointerException.class)
-			.isThrownBy(() -> new SecurityUser("ada", Set.of(), null, true, true, true, true))
+			.isThrownBy(() -> new SecurityUser("ada", Optional.empty(), Set.of(), null, true, true, true, true))
 			.withMessageContaining("permissions must not be null");
 	}
 
