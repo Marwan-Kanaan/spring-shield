@@ -1,9 +1,11 @@
 package io.github.marwankanaan.springshield.autoconfigure;
 
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.List;
 
 import io.github.marwankanaan.springshield.RequiresPermission;
@@ -199,6 +201,58 @@ class JwtEndToEndIntegrationTests {
 	void shouldRejectAMalformedToken() throws Exception {
 		this.mvc.perform(get("/api/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer not-a-jwt"))
 			.andExpect(status().isUnauthorized());
+	}
+
+	/**
+	 * Algorithm confusion, in its bluntest form: a token asserting {@code alg: none} and
+	 * carrying no signature at all. Accepting one would let anybody mint any claims they
+	 * liked, so this is the single most important thing to be sure of.
+	 */
+	@Test
+	@DisplayName("an unsigned token claiming alg none is rejected")
+	void shouldRejectAnUnsignedToken() throws Exception {
+		String header = base64Url("{\"alg\":\"none\"}");
+		String payload = base64Url("{\"iss\":\"" + issuer.issuerUri() + "\",\"sub\":\"ada\","
+				+ "\"aud\":[\"https://api.example.com\"],\"scope\":\"invoice.read\",\"exp\":"
+				+ (Instant.now().plus(5, ChronoUnit.MINUTES).getEpochSecond()) + "}");
+		String unsigned = header + "." + payload + ".";
+
+		this.mvc.perform(get("/api/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + unsigned))
+			.andExpect(status().isUnauthorized());
+	}
+
+	/**
+	 * The same token with its signature removed. A verifier that checked the algorithm
+	 * but not the signature bytes would let this through.
+	 */
+	@Test
+	void shouldRejectAValidTokenWithItsSignatureStripped() throws Exception {
+		String[] parts = validToken().split("[.]");
+		String stripped = parts[0] + "." + parts[1] + ".";
+
+		this.mvc.perform(get("/api/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + stripped))
+			.andExpect(status().isUnauthorized());
+	}
+
+	/**
+	 * A token whose payload was edited after signing. The signature no longer covers the
+	 * claims, so it must not be trusted even though it is structurally intact.
+	 */
+	@Test
+	void shouldRejectATokenWhosePayloadWasAlteredAfterSigning() throws Exception {
+		String[] parts = validToken().split("[.]");
+		String tampered = parts[0] + "."
+				+ base64Url("{\"iss\":\"" + issuer.issuerUri() + "\",\"sub\":\"attacker\","
+						+ "\"aud\":[\"https://api.example.com\"],\"scope\":\"invoice.read\",\"exp\":"
+						+ (Instant.now().plus(5, ChronoUnit.MINUTES).getEpochSecond()) + "}")
+				+ "." + parts[2];
+
+		this.mvc.perform(get("/api/invoices").header(HttpHeaders.AUTHORIZATION, "Bearer " + tampered))
+			.andExpect(status().isUnauthorized());
+	}
+
+	private static String base64Url(String value) {
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/**
