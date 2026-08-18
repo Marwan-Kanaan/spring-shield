@@ -5,8 +5,8 @@ An opinionated, secure-by-default Spring Boot starter that orchestrates Spring S
 > **Status: pre-alpha, nothing published yet.**
 > Working: deny-by-default request authorization, username and password authentication via
 > your own user store, JWT bearer token validation, permission and role annotations, password
-> encoding, and a consistent error contract. Not yet built: OIDC login, persistence adapters,
-> and test-support helpers. The public API may still change without notice.
+> encoding, a consistent error contract, and test helpers. Not yet built: OIDC login and
+> persistence adapters. The public API may still change without notice.
 
 ## What it is
 
@@ -69,7 +69,10 @@ public List<Invoice> findInvoices() { ... }
 | [Method authorization](docs/authorization.md) | `@RequiresPermission`, `@RequiresRole`, and proxy limitations |
 | [Error responses](docs/errors.md) | The 401 and 403 contract, and what it never reveals |
 | [Password encoding](docs/password-encoding.md) | The default encoder and how to replace it |
-| [Contributing](docs/contributing.md) | Quality gates and the rules every change follows |
+| [Testing](docs/testing.md) | Test helpers for applications using SpringShield |
+| [Threat model](docs/threat-model.md) | What SpringShield defends against, and what it does not |
+| [Contributing](CONTRIBUTING.md) | Quality gates and the rules every change follows |
+| [Security policy](SECURITY.md) | Reporting a vulnerability, and what is in scope |
 
 ## Baseline
 
@@ -90,6 +93,7 @@ patches.
 |---|---|
 | `spring-shield-core` | Public abstractions and annotations. Depends only on `spring-security-core`, so it forces no Spring Boot, web or persistence choice. |
 | `spring-shield-autoconfigure` | Spring Boot integration, configuration properties and default wiring. Internal. |
+| `spring-shield-test` | Test helpers for applications. Add at test scope. |
 | `spring-shield-spring-boot-starter` | The dependency you add. Aggregator only, no logic. |
 
 Optional integrations (JPA, JDBC, OAuth2/OIDC SSO) will live in separate modules so
